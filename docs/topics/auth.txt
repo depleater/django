@@ -57,6 +57,10 @@ API reference
 Fields
 ~~~~~~
 
+TODO document which attributes/methods come from AbstractBaseUser
+TODO tone down references to get_profile - it's not the best way of doing things
+any more.
+
 .. class:: models.User
 
     :class:`~django.contrib.auth.models.User` objects have the following
@@ -66,9 +70,6 @@ Fields
 
         Required. 30 characters or fewer. Alphanumeric characters only
         (letters, digits and underscores).
-
-        .. versionchanged:: 1.2
-           Usernames may now contain ``@``, ``+``, ``.`` and ``-`` characters.
 
     .. attribute:: models.User.first_name
 
@@ -1779,10 +1780,6 @@ Specifying a custom User model
 The User model contract
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Django expects your custom User model to implement certain methods. The
-``auth.models.User`` model inherits from the abstract mixin
-``auth.models.BaseUserManager``
-
 .. admonition:: Model design considerations
 
  	Think carefully before using your custom User model to handle information not
@@ -1794,6 +1791,13 @@ Django expects your custom User model to implement certain methods. The
    own user profile requirements without risking conflicts with other apps. On
    the other hand, queries against the `User` model for this information will
    likely involve a database join, which affects performance.
+
+Django expects your custom User model to implement certain methods. The
+``auth.models.User`` model inherits from the abstract mixin
+``auth.models.BaseUserManager``.
+
+
+TODO
 
 .. _authentication-backends:
 
