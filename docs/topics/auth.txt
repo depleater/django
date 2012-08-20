@@ -57,6 +57,10 @@ API reference
 Fields
 ~~~~~~
 
+TODO document which attributes/methods come from AbstractBaseUser
+TODO tone down references to get_profile - it's not the best way of doing things
+any more.
+
 .. class:: models.User
 
     :class:`~django.contrib.auth.models.User` objects have the following
@@ -1715,54 +1719,73 @@ Customizing the User model
 
 .. versionchanged:: 1.5
 
-** TODO
+Some kinds of projects may have authentication requirements for which Django's
+built-in :class:`~django.contrib.auth.models.User` model is not always
+appropriate. For instance, on some sites it makes more sense to use an email
+address as your identification token instead of a username.
 
-The :class:`~django.contrib.auth.models.User` model may not be suitable for authentication in some kinds of projects. For instance on some sites usernames don't make sense and it makes more sense to use as email address as your identification token instead of a username. Specifically, contrib.models.user has these restrictions:
+Django allows you to override the default User model by changing
+settings.AUTH_USER to reference a custom model, like this::
 
-- Username is required, and limited to 30 characters.
-- Email has a 75 character limit, and isn't unique or required.
-- There is a "first name" and "last name" field, which is a western-centric 
-  organisation of naming and doesn't work well in other cultures.
-- There is no easy way to add additional fields to the base user model.
+	 AUTH_USER_MODEL = 'myapp.MyUser'
+
+Your custom User model needs to provide certain methods in order to work in the
+Django ecosystem. These methods are explained below.
+
+.. admonition:: Warning
+
+ 	Unless your custom model is identical to auth.models.User at the database
+   level, changing AUTH_USER_MODEL will require a change in database structure.
+   You should make the setting before running ``manage.py syncdb`` for the first
+   time, or else plan to migrate your data away from `auth.User`.
+
+	If your custom User model is identical at the database level, you could
+consider specifying ``db_table = 'auth_user'`` in your custom model's `Meta`
+options as a shortcut.
 
 
-In order to work with Django's auth methods (and django.contrib.admin), your custom User model should provide certain methods, described below.
+Referencing the User model
+--------------------------
 
+If you reference ``auth.models.User`` directly (for example, by ``import``ing
+it), your code is not likely to work in projects where the AUTH_USER_MODEL
+setting has been changed to a different User model. Similarly,
+``models.get_model('auth', 'User'`` will always return auth.User, which is
+usually not what you want.
+
+Instead, you should reference the user model with ``auth.get_user_model()``,
+which will return the custom User model if one is specified, or ``auth.User``
+otherwise.
+
+In relations to the User model, you should specify the custom model using
+``get_user_model()`` or a string reference::
+
+	user = models.ForeignKey(settings.AUTH_USER_MODEL)`.
 
 Specifying a custom User model
 ------------------------------
 
-You can swap out the built-in User model and replace it with a model of your own design by specifying the model in settings.AUTH_USER, like this:
+The User model contract
+~~~~~~~~~~~~~~~~~~~~~~~
 
-    AUTH_USER_MODEL = 'myauth.MyUser'
+.. admonition:: Model design considerations
 
-This causes all string-based references to "auth.User" (for example, in `ForeignKey`s and `db.get_model()` calls) to resolve to your custom User model.
+ 	Think carefully before using your custom User model to handle information not
+   directly related to authentication, such as including a ``twitter_account``
+   field for example.
 
-.. admonition:: Model design guidance
+   It tends to be tidier to store app-specific profile information in a model
+   that has a relation with the User model. That allows each app to specify its
+   own user profile requirements without risking conflicts with other apps. On
+   the other hand, queries against the `User` model for this information will
+   likely involve a database join, which affects performance.
 
- 	Think carefully before storing information not directly related to authentication (such as `twitter_name` for example) in your custom User model. 
+Django expects your custom User model to implement certain methods. The
+``auth.models.User`` model inherits from the abstract mixin
+``auth.models.BaseUserManager``.
 
-   For reusable apps, profile information may be better stored in model that has a relation with the User model, so that the app can avoid potential conflicts with other apps. On the other hand, queries against the `User` model for this information will likely involve a database join, which affects performance.
-
-Referencing the User model
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you reference auth.models.User directly (for example, by `import`ing it), your code is likely to stop working if the AUTH_USER_MODEL setting is set to a different User model.
-
-Instead, use `models.get_model('auth', 'User')`, which will return the custom User model if one is specified. You should also use a string reference (e.g. `models.ForeignKey('auth.User')`) in relations.
-
-.. admonition:: How it works
-
-	TODO
-
-
-Mixins available to custom user models
---------------------------------------
 
 TODO
-
-
-
 
 .. _authentication-backends:
 
