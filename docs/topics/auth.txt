@@ -1743,7 +1743,6 @@ Django ecosystem. These methods are explained below.
 consider specifying ``db_table = 'auth_user'`` in your custom model's `Meta`
 options as a shortcut.
 
-
 Referencing the User model
 --------------------------
 
@@ -1764,15 +1763,11 @@ In relations to the User model, you should specify the custom model using
 
 Specifying a custom User model
 ------------------------------
-
-The User model contract
-~~~~~~~~~~~~~~~~~~~~~~~
-
 .. admonition:: Model design considerations
 
- 	Think carefully before using your custom User model to handle information not
-   directly related to authentication, such as including a ``twitter_account``
-   field for example.
+ 	Think carefully before handling information not directly related to
+   authentication in your custom User Model, such as including a
+   ``twitter_account`` field for example.
 
    It tends to be tidier to store app-specific profile information in a model
    that has a relation with the User model. That allows each app to specify its
@@ -1780,12 +1775,85 @@ The User model contract
    the other hand, queries against the `User` model for this information will
    likely involve a database join, which affects performance.
 
-Django expects your custom User model to implement certain methods. The
-``auth.models.User`` model inherits from the abstract mixin
-``auth.models.BaseUserManager``.
+Django expects your custom User model to implement some minimum requirements, in
+addition to those you provide yourself. For ``auth.models.User`` these
+properties and methods are inherited from the abstract model
+``auth.models.AbstractBaseUser``. You can inherit ``AbstractBaseUser`` or define
+your own equivalent if you wish.
+
+TODO: What are the minimum requirements for an implementation of an auth-compatible User?
+
+TODO: What is the minimum contract for being able to use a User model in Admin?
+
+Worked Example
+~~~~~~~~~~~~~~
+
+As a worked example, here is a full models.py for a custom user app.
+This user model uses an "email" field as the username, and has a
+required date of birth::
+
+	from django.db import models
+	from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 
 
-TODO
+	class MyUserManager(BaseUserManager):
+	    def create_user(self, email, date_of_birth, password=None):
+	        """
+	        Creates and saves a User with the given username, email and password.
+	        """
+	        if not email:
+	            raise ValueError('Users must have an email address')
+
+	        user = self.model(
+	            email=MyUserManager.normalize_email(email),
+	            date_of_birth=date_of_birth,
+	        )
+
+	        user.set_password(password)
+	        user.save(using=self._db)
+	        return user
+
+	    def create_superuser(self, username, password, date_of_birth):
+	        u = self.create_user(username, password=password,
+	date_of_birth=date_of_birth)
+	        u.is_admin = True
+	        u.save(using=self._db)
+	        return u
+
+
+	class MyUser(AbstractBaseUser):
+	    email = models.EmailField(verbose_name='email address', max_length=255)
+	    date_of_birth = models.DateField()
+	    is_admin = models.BooleanField(default=False)
+
+	    objects = MyUserManager()
+
+	    USERNAME_FIELD = 'email'
+	    REQUIRED_FIELDS = ['date_of_birth']
+
+	    def get_full_name(self):
+	        return self.email
+
+	    def get_short_name(self):
+	        return self.email
+
+	    def __unicode__(self):
+	        return self.email
+
+	    def has_perm(self, perm, obj=None):
+	        return True
+
+	    def has_module_perms(self, app_label):
+	        return True
+
+	    @property
+	    def is_staff(self):
+	        return self.is_admin
+
+	    @property
+	    def is_active(self):
+	        return True
+
 
 .. _authentication-backends:
 
