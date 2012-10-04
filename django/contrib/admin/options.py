@@ -1065,6 +1065,9 @@ class ModelAdmin(BaseModelAdmin):
         formsets = []
         inline_instances = self.get_inline_instances(request)
         if request.method == 'POST':
+            if not self.has_change_permission(request, obj):
+                raise PermissionDenied
+
             form = ModelForm(request.POST, request.FILES, instance=obj)
             if form.is_valid():
                 form_validated = True
@@ -1146,6 +1149,9 @@ class ModelAdmin(BaseModelAdmin):
         opts = self.model._meta
         app_label = opts.app_label
         if not self.has_view_permission(request, None):
+            raise PermissionDenied
+        if (request.method == 'POST' and
+                not self.has_change_permission(request, None)):
             raise PermissionDenied
 
         list_display = self.get_list_display(request)
