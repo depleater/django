@@ -277,6 +277,23 @@ class BaseModelAdmin(object):
         opts = self.opts
         return request.user.has_perm(opts.app_label + '.' + opts.get_add_permission())
 
+    def has_view_permission(self, request, obj=None):
+        """
+        Returns True if the given request has permission to view an object.
+
+        The default implementation doesn't examine the `obj` parameter.
+
+        Can be overridden by the user in subclasses. In such case it should
+        return True if the given request has permission to view the `obj`
+        model instance. If `obj` is None, this should return True if the given
+        request has permission to view *any* object of the given type.
+        """
+        opts = self.opts
+        # Only require explicit view-permission if no change-permission.
+        if self.has_change_permission(request, obj):
+            return True
+        return request.user.has_perm(opts.app_label + '.' + opts.get_view_permission())
+
     def has_change_permission(self, request, obj=None):
         """
         Returns True if the given request has permission to change the given
@@ -416,6 +433,7 @@ class ModelAdmin(BaseModelAdmin):
         """
         return {
             'add': self.has_add_permission(request),
+            'view': self.has_view_permission(request),
             'change': self.has_change_permission(request),
             'delete': self.has_delete_permission(request),
         }
@@ -740,6 +758,7 @@ class ModelAdmin(BaseModelAdmin):
             'add': add,
             'change': change,
             'has_add_permission': self.has_add_permission(request),
+            'has_view_permission': self.has_view_permission(request, obj),
             'has_change_permission': self.has_change_permission(request, obj),
             'has_delete_permission': self.has_delete_permission(request, obj),
             'has_file_field': True, # FIXME - this should check if form or formsets have a FileField,
@@ -790,10 +809,10 @@ class ModelAdmin(BaseModelAdmin):
         else:
             self.message_user(request, msg)
 
-            # Figure out where to redirect. If the user has change permission,
+            # Figure out where to redirect. If the user has view permission,
             # redirect to the change-list page for this object. Otherwise,
             # redirect to the admin index.
-            if self.has_change_permission(request, None):
+            if self.has_view_permission(request, None):
                 post_url = reverse('admin:%s_%s_changelist' %
                                    (opts.app_label, opts.module_name),
                                    current_app=self.admin_site.name)
@@ -1016,7 +1035,7 @@ class ModelAdmin(BaseModelAdmin):
 
         obj = self.get_object(request, unquote(object_id))
 
-        if not self.has_change_permission(request, obj):
+        if not self.has_view_permission(request, obj):
             raise PermissionDenied
 
         if obj is None:
@@ -1085,8 +1104,12 @@ class ModelAdmin(BaseModelAdmin):
             inline_admin_formsets.append(inline_admin_formset)
             media = media + inline_admin_formset.media
 
+        title_prefix = _('View')
+        if self.has_change_permission():
+            title_prefix = _('Change')
+
         context = {
-            'title': _('Change %s') % force_unicode(opts.verbose_name),
+            'title': _('%s %s') % (title_prefix, force_unicode(opts.verbose_name)),
             'adminform': adminForm,
             'object_id': object_id,
             'original': obj,
@@ -1107,7 +1130,7 @@ class ModelAdmin(BaseModelAdmin):
         from django.contrib.admin.views.main import ERROR_FLAG
         opts = self.model._meta
         app_label = opts.app_label
-        if not self.has_change_permission(request, None):
+        if not self.has_view_permission(request, None):
             raise PermissionDenied
 
         list_display = self.get_list_display(request)

@@ -73,7 +73,7 @@ class ChangeList(object):
         if self.is_popup:
             title = ugettext('Select %s')
         else:
-            title = ugettext('Select %s to change')
+            title = ugettext('Select %s to view')
         self.title = title % force_unicode(self.opts.verbose_name)
         self.pk_attname = self.lookup_opts.pk.attname
 

@@ -353,6 +353,9 @@ class Options(object):
     def get_add_permission(self):
         return 'add_%s' % self.object_name.lower()
 
+    def get_view_permission(self):
+        return 'view_%s' % self.object_name.lower()
+
     def get_change_permission(self):
         return 'change_%s' % self.object_name.lower()
 
