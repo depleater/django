@@ -1105,7 +1105,7 @@ class ModelAdmin(BaseModelAdmin):
             media = media + inline_admin_formset.media
 
         title_prefix = _('View')
-        if self.has_change_permission():
+        if self.has_change_permission(request, None):
             title_prefix = _('Change')
 
         context = {
