@@ -874,10 +874,10 @@ class ModelAdmin(BaseModelAdmin):
                                         current_app=self.admin_site.name))
         else:
             self.message_user(request, msg)
-            # Figure out where to redirect. If the user has change permission,
+            # Figure out where to redirect. If the user has view permission,
             # redirect to the change-list page for this object. Otherwise,
             # redirect to the admin index.
-            if self.has_change_permission(request, None):
+            if self.has_view_permission(request, None):
                 post_url = reverse('admin:%s_%s_changelist' %
                                    (opts.app_label, module_name),
                                    current_app=self.admin_site.name)
