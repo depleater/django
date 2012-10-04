@@ -206,6 +206,21 @@ class BaseModelAdmin(object):
         """
         return self.readonly_fields
 
+    def get_noneditable_fields(self, request, obj=None):
+        """
+        Wrapper for `get_readonly_fields` which considers all fields
+        readonly when we don't have change permission.
+
+        This is used to build an AdminForm in the change_view method.
+        """
+        readonly_fields = self.get_readonly_fields(request, obj)
+        if self.has_change_permission(request, obj):
+            return readonly_fields
+
+        # No change permission means *all* fields should be
+        # treated as though they're readonly.
+        return self.get_form(request, obj).base_fields.keys()
+
     def get_prepopulated_fields(self, request, obj=None):
         """
         Hook for specifying custom prepopulated fields.
@@ -1090,7 +1105,7 @@ class ModelAdmin(BaseModelAdmin):
 
         adminForm = helpers.AdminForm(form, self.get_fieldsets(request, obj),
             self.get_prepopulated_fields(request, obj),
-            self.get_readonly_fields(request, obj),
+            self.get_noneditable_fields(request, obj),
             model_admin=self)
         media = self.media + adminForm.media
 
